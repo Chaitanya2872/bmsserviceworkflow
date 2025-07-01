@@ -2,7 +2,7 @@ const express = require("express");
 const session = require("express-session");
 const passport = require("passport");
 const path = require("path");
-require("dotenv").config();
+require("dotenv").config({ path: '/etc/secrets/.env' });
 require("./middleware/passport");
 const cors = require("cors");
 

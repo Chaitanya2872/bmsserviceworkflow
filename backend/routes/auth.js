@@ -14,11 +14,14 @@ router.get("/auth/google",
 );
 
 router.get("/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/" }),
+  passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
-    res.redirect("http://localhost:3000/dashboard");
+    res.redirect("https://bmswebworkflow.vercel.app/dashboard");
+    
   }
 );
+
+
 
 router.get("/dashboard", (req, res) => {
   if (!req.user) return res.redirect("/");

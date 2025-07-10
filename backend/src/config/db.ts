@@ -9,9 +9,8 @@ const pool = new Pool({
   host: process.env.DB_HOST as string,
   port: parseInt(process.env.DB_PORT || '5432', 10),
   database: process.env.DB_NAME as string,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DB_SSL === 'true' 
 });
 
-console.log("DB_PASSWORD:", process.env.DB_PASSWORD);
 
 export default pool;

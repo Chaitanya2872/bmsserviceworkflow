@@ -29,10 +29,8 @@ app.use(express.json());
 // CORS configuration for frontend
 app.use(
   cors({
-    origin: [
-      "https://bmsserviceworkflow.onrender.com",
-      "https://creative-dieffenbachia-24c882.netlify.app/"
-    ],
+    origin:"https://creative-dieffenbachia-24c882.netlify.app/",
+  
     credentials: true,
   })
 );

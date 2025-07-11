@@ -31,7 +31,7 @@ app.use(
   cors({
     origin: [
       "https://bmsserviceworkflow.onrender.com",
-      "http://localhost:3000"
+      "https://creative-dieffenbachia-24c882.netlify.app/"
     ],
     credentials: true,
   })

@@ -29,7 +29,10 @@ app.use(express.json());
 // CORS configuration for frontend
 app.use(
   cors({
-    origin: "https://bmsserviceworkflow.onrender.com", 
+    origin: [
+      "https://bmsserviceworkflow.onrender.com",
+      "http://localhost:3000"
+    ],
     credentials: true,
   })
 );

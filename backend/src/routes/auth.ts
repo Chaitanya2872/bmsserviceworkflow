@@ -26,8 +26,6 @@ interface User {
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
-console.log(ACCESS_TOKEN_SECRET)
-console.log(REFRESH_TOKEN_SECRET)
 
 // Token generators
 function generateAccessToken(user: Pick<User, "id" | "email">): string {
@@ -141,8 +139,6 @@ router.post("/login", async (req: Request, res: Response) => {
     const accessTokenExpiry = new Date(now + 15 * 60 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
     const refreshTokenExpiry = new Date(now + 30 * 60 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 
-    console.log("Access Token Expiry (IST):", accessTokenExpiry);
-    console.log("Refresh Token Expiry (IST):", refreshTokenExpiry);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,

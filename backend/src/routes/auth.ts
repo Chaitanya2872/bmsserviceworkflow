@@ -5,6 +5,11 @@ import pool from "../config/db";
 import dotenv from "dotenv";
 import { QueryResult } from "pg";
 
+import fs from 'fs';
+
+import { Asset, DB } from './types';
+
+
 dotenv.config();
 
 const router = express.Router();
@@ -26,6 +31,8 @@ interface User {
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
+console.log(ACCESS_TOKEN_SECRET)
+console.log(REFRESH_TOKEN_SECRET)
 
 // Token generators
 function generateAccessToken(user: Pick<User, "id" | "email">): string {
@@ -85,6 +92,42 @@ router.get(
 );
 
 // Register
+// router.post("/register", async (req: Request, res: Response) => {
+//   const { name, email, password } = req.body;
+
+//   try {
+//     let user_id: string | null = null;
+
+//     for (let i = 0; i < 5; i++) {
+//       const generatedId = generateUserId();
+//       const result: QueryResult = await pool.query(
+//         "SELECT 1 FROM users WHERE user_id = $1",
+//         [generatedId]
+//       );
+//       if (result.rowCount === 0) {
+//         user_id = generatedId;
+//         break;
+//       }
+//     }
+
+//     if (!user_id) {
+//       return res.status(500).json({ error: "Failed to generate unique user ID" });
+//     }
+
+//     await pool.query(
+//       `INSERT INTO users (user_id, name, email, password) VALUES ($1, $2, $3, $4)`,
+//       [user_id, name, email, password]
+//     );
+
+//     res.status(201).json({
+//       message: "Registered successfully",
+//       user_id,
+//     });
+//   } catch (err: any) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+// Register
 router.post("/register", async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
 
@@ -112,14 +155,53 @@ router.post("/register", async (req: Request, res: Response) => {
       [user_id, name, email, password]
     );
 
+    // Fetch the newly created user
+    const { rows }: QueryResult<User> = await pool.query(
+      "SELECT * FROM users WHERE user_id = $1",
+      [user_id]
+    );
+
+    const user = rows[0];
+    if (!user) return res.status(500).json({ error: "User fetch failed after registration" });
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    const now = Date.now();
+    const accessTokenExpiry = new Date(now + 15 * 60 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const refreshTokenExpiry = new Date(now + 30 * 60 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+    console.log("Access Token Expiry (IST):", accessTokenExpiry);
+    console.log("Refresh Token Expiry (IST):", refreshTokenExpiry);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false,
+      path: "/api/auth/refresh-token",
+      sameSite: "strict",
+      maxAge: 30 * 60 * 1000,
+    });
+
     res.status(201).json({
-      message: "Registered successfully",
-      user_id,
+      id: user.id,
+      user: {
+        name: user.name || null,
+        user_id: user.user_id,
+        email: user.email,
+        password: user.password,
+        created_at: user.created_at,
+        accessToken,
+        refreshToken,
+        accessTokenExpiresAt: accessTokenExpiry,
+        refreshTokenExpiresAt: refreshTokenExpiry,
+      },
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Login
 router.post("/login", async (req: Request, res: Response) => {
@@ -139,6 +221,8 @@ router.post("/login", async (req: Request, res: Response) => {
     const accessTokenExpiry = new Date(now + 15 * 60 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
     const refreshTokenExpiry = new Date(now + 30 * 60 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 
+    console.log("Access Token Expiry (IST):", accessTokenExpiry);
+    console.log("Refresh Token Expiry (IST):", refreshTokenExpiry);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -211,5 +295,79 @@ router.get("/users", async (_req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+
+
+
+const DB_FILE = 'db.json';
+
+
+const readDB = (): DB => {
+  const data = fs.readFileSync(DB_FILE, 'utf-8');
+  return JSON.parse(data);
+};
+
+const writeDB = (data: DB): void => {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+};
+
+
+router.get('/assets', (_req: Request, res: Response) => {
+  const db = readDB();
+  res.json(db.assets);
+});
+
+router.get('/assets/:id', (req: Request, res: Response) => {
+  const db = readDB();
+  const id = parseInt(req.params.id);
+  const asset = db.assets.find((a) => a.id === id);
+
+  if (!asset) return res.status(404).json({ message: 'Asset not found' });
+  res.json(asset);
+});
+
+
+router.post('/assets', (req: Request, res: Response) => {
+  const db = readDB();
+  const newAsset: Asset = {
+    id: Date.now(),
+    ...req.body
+  };
+  db.assets.push(newAsset);
+  writeDB(db);
+  res.status(201).json(newAsset);
+});
+
+
+router.put('/assets/:id', (req: Request, res: Response) => {
+  const db = readDB();
+  const id = parseInt(req.params.id);
+  const index = db.assets.findIndex((a) => a.id === id);
+
+  if (index === -1) return res.status(404).json({ message: 'Asset not found' });
+
+  db.assets[index] = { ...db.assets[index], ...req.body };
+  writeDB(db);
+  res.json(db.assets[index]);
+});
+
+
+router.delete('/assets/:id', (req: Request, res: Response) => {
+  const db = readDB();
+  const id = parseInt(req.params.id);
+  const newAssets = db.assets.filter((a) => a.id !== id);
+
+  if (newAssets.length === db.assets.length) {
+    return res.status(404).json({ message: 'Asset not found' });
+  }
+
+  db.assets = newAssets;
+  writeDB(db);
+  res.json({ message: 'Asset deleted' });
+});
+
+
+
 
 export default router;

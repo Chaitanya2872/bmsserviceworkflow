@@ -4,6 +4,9 @@ import passport from "passport";
 import path from "path";
 import dotenv from "dotenv";
 import cors from "cors";
+import cookieParser from 'cookie-parser';
+import bodyParser from 'body-parser';
+
 
 dotenv.config(); 
 
@@ -25,12 +28,13 @@ const app = express();
 // app.set("views", path.join(__dirname, "views"));
 
 app.use(express.json());
+app.use(cookieParser());
+app.use(bodyParser.json());
 
 // CORS configuration for frontend
 app.use(
   cors({
-    origin:"https://creative-dieffenbachia-24c882.netlify.app/",
-  
+    origin: "http://localhost:3000", // Change to frontend origin in production
     credentials: true,
   })
 );
